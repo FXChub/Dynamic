@@ -52,3 +52,21 @@ a {
 form {
     margin-bottom: 10px;
 }
+
+#notification-icon {
+    position: relative;
+}
+
+#notification-dot {
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 10px;
+    height: 10px;
+    background: red;
+    border-radius: 50%;
+}
+
+.hidden {
+    display: none;
+}

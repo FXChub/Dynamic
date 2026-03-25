@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Notifications</title>
+</head>
+<body>
+
+<h1>Your Notifications</h1>
+
+<% if (Array.isArray(notifications)) { %>
+    <% notifications.forEach(n => { %>
+        <div>
+            <p><%= n.message %></p>
+            <small><%= n.created_at %></small>
+        </div>
+    <% }) %>
+<% } else { %>
+    <p>No notifications found.</p>
+<% } %>
+
+<script>
+fetch('/notifications/unread-count')
+    .then(res => res.json())
+    .then(data => {
+    const dot = document.getElementById('notification-dot');
+
+    if (data.count > 0) {
+        dot.classList.remove('hidden');
+    } else {
+        dot.classList.add('hidden');
+    }
+    });
+</script>
+
+<a href="/">Back to home</a>
+
+</body>
+</html>

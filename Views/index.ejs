@@ -1,12 +1,20 @@
-<link rel="stylesheet" href="/style.css">
+<!DOCTYPE html>
+<html>
+<head>
+    <title>The FXC Fandom</title>
+    <link rel="stylesheet" href="/style.css">
+</head>
+<body>
 
 <div class="container">
-    <h1>Home</h1>
+    <h1>The FXC Fandom</h1>
 
     <% if (user) { %>
-        <form action="/post" method="POST">
-            <textarea name="content" placeholder="What's happening?" required></textarea>
-            <button>Post</button>
+        <!-- UPLOAD POST -->
+        <form action="/posts" method="POST" enctype="multipart/form-data">
+            <textarea name="content" placeholder="What's happening?"></textarea>
+            <input type="file" name="media" accept="image/*,video/*,image/gif" />
+            <button type="submit">Post</button>
         </form>
 
         <a href="/profile">Profile</a>
@@ -14,11 +22,156 @@
     <% } else { %>
         <a href="/login">Login</a>
     <% } %>
+        <a href="/notifications" id="mailbox-link">Mailbox <span id="mailbox-dot" class="hidden" style="color:red;margin-left:4px;">●</span> <span id="mailbox-count" class="hidden" style="color:red;font-weight:bold;margin-left:3px;"></span></a>
 
-    <% posts.forEach(post => { %>
+    <!-- POSTS -->
+    <% posts.forEach(function(post) { %>
         <div class="post">
             <strong>@<%= post.username %></strong>
             <p><%= post.content %></p>
+
+            <% if (post.media_path) { %>
+                <% if (post.media_path.endsWith('.mp4') || post.media_path.endsWith('.webm')) { %>
+                    <video controls width="300">
+                        <source src="<%= post.media_path %>" type="video/mp4">
+                    </video>
+                <% } else { %>
+                    <img src="<%= post.media_path %>" width="300" />
+                <% } %>
+            <% } %>
+
+            <!-- ❤️ LIKE BUTTON -->
+            <% const liked = !!(user && userLikes && userLikes.length && userLikes.indexOf(post.id) !== -1); %>
+            <form class="like-form" data-post-id="<%= post.id %>" data-liked="<%= liked ? '1' : '0' %>">
+                <button type="submit">
+                    <span class="heart"><%= liked ? '❤️' : '💔' %></span>
+                    <span class="like-count"><%= post.like_count %></span>
+                </button>
+                <span class="like-feedback" style="margin-left: 10px; color: green; display: none;"><%= liked ? 'Unliked!' : 'Liked!' %></span>
+            </form>
+
+            <!-- 💬 COMMENTS -->
+            <div class="comments">
+                <% if (comments) { %>
+                    <% comments.forEach(function(comment) { %>
+                        <% if (comment.post_id == post.id) { %>
+                            <p>
+                                <strong>@<%= comment.username %>:</strong>
+                                <%= comment.content %>
+                            </p>
+                        <% } %>
+                    <% }) %>
+                <% } %>
+            </div>
+
+            <!-- ➕ ADD COMMENT -->
+            <% if (user) { %>
+                <form class="comment-form" data-post-id="<%= post.id %>" action="/comment/<%= post.id %>" method="POST">
+                    <input name="content" placeholder="Write a comment..." required>
+                    <button type="submit">Comment</button>
+                </form>
+            <% } %>
+
         </div>
     <% }) %>
 </div>
+
+<script>
+  document.querySelectorAll('.like-form').forEach(form => {
+    form.addEventListener('submit', event => {
+      event.preventDefault();
+      const postId = form.dataset.postId;
+      const feedback = form.querySelector('.like-feedback');
+
+      fetch('/like/' + postId, {
+        method: 'POST',
+        headers: { 'Accept': 'application/json' }
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          form.querySelector('.like-count').textContent = data.count;
+          form.dataset.liked = data.liked ? '1' : '0';
+          form.querySelector('.heart').textContent = data.liked ? '❤️' : '💔';
+          feedback.textContent = data.liked ? 'Liked!' : 'Unliked!';
+          feedback.style.display = 'inline';
+          clearTimeout(form._feedbackTimer);
+          form._feedbackTimer = setTimeout(() => { feedback.style.display = 'none'; }, 1200);
+        } else {
+          console.error('Like failed:', data);
+        }
+      })
+      .catch(err => console.error('Like network error:', err));
+    });
+  });
+
+  document.querySelectorAll('.comment-form').forEach(form => {
+    form.addEventListener('submit', event => {
+      event.preventDefault();
+      const postId = form.dataset.postId;
+      const content = form.querySelector('[name="content"]').value;
+      const body = new URLSearchParams();
+      body.append('content', content);
+
+      fetch('/comment/' + postId, {
+        method: 'POST',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/x-www-form-urlencoded'
+        },
+        body: body.toString()
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          form.querySelector('[name="content"]').value = '';
+          const status = document.createElement('span');
+          status.style.color = 'green';
+          status.textContent = 'Sent!';
+          form.appendChild(status);
+
+          const postBlock = form.closest('.post');
+          if (postBlock) {
+            const commentsList = postBlock.querySelector('.comments');
+            const newComment = document.createElement('p');
+            const currentUser = '';
+            newComment.innerHTML = `<strong>@${currentUser}:</strong> ${content}`;
+            commentsList.appendChild(newComment);
+          }
+          setTimeout(() => status.remove(), 1200);
+        } else {
+          console.error('Comment failed:', data);
+        }
+      })
+      .catch(err => console.error('Comment network error:', err));
+    });
+  });
+
+  const mailboxDot = document.getElementById('mailbox-dot');
+  const mailboxCount = document.getElementById('mailbox-count');
+
+  const updateNotificationDot = () => {
+    if (!mailboxDot) return; // Only run if user is logged in
+    fetch('/notifications/unread-count', { headers: { 'Accept': 'application/json' } })
+      .then(res => res.json())
+      .then(data => {
+        if (data && data.count > 0) {
+          mailboxDot.classList.remove('hidden');
+          mailboxCount.classList.remove('hidden');
+          mailboxCount.textContent = data.count;
+        } else {
+          mailboxDot.classList.add('hidden');
+          mailboxCount.classList.add('hidden');
+          mailboxCount.textContent = '';
+        }
+      })
+      .catch(err => console.error('Notification badge error:', err));
+  };
+
+  if (mailboxDot) {
+    updateNotificationDot();
+    setInterval(updateNotificationDot, 30000);
+  }
+</script>
+</body>
+</html>
