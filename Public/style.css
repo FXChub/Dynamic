@@ -5,6 +5,35 @@ body {
     padding: 0;
 }
 
+.nav-header {
+    position: fixed;
+    top: 15px;
+    right: 15px;
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    z-index: 1000;
+}
+
+.nav-link {
+    background: #1da1f2;
+    color: white;
+    text-decoration: none;
+    padding: 10px 15px;
+    border-radius: 20px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background 0.3s;
+}
+
+.nav-link:hover {
+    background: #0d8ddb;
+}
+
+.login-btn {
+    background: #1da1f2;
+}
+
 .container {
     width: 600px;
     margin: 20px auto;

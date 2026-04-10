@@ -71,7 +71,7 @@ app.get("/login", (req, res) => {
 // REGISTER (Create user)
 app.post("/register", (req, res) => {
     const { username, password } = req.body;
-
+    
     bcrypt.hash(password, 10, (err, hash) => {
         if (err) return res.send("Error hashing password");
 
@@ -132,7 +132,7 @@ app.post("/post", isLoggedIn, (req, res) => {
 app.get("/profile", isLoggedIn, (req, res) => {
     db.all(
         "SELECT * FROM posts WHERE user_id = ?",
-        [req.session.user.id],
+        [req.session.user.id], 
         (err, rows) => {
             res.render("profile", { posts: rows });
         }

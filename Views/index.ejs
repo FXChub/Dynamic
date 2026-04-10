@@ -6,6 +6,16 @@
 </head>
 <body>
 
+<div class="nav-header">
+    <% if (user) { %>
+        <a href="/logout" class="nav-link">Logout</a>
+        <a href="/profile" class="nav-link">Profile</a>
+    <% } else { %>
+        <a href="/login" class="nav-link login-btn">Login</a>
+    <% } %>
+    <a href="/notifications" id="mailbox-link" class="nav-link">Mailbox <span id="mailbox-dot" class="hidden" style="color:red;margin-left:4px;">●</span> <span id="mailbox-count" class="hidden" style="color:red;font-weight:bold;margin-left:3px;"></span></a>
+</div>
+
 <div class="container">
     <h1>The FXC Fandom</h1>
 
@@ -16,13 +26,7 @@
             <input type="file" name="media" accept="image/*,video/*,image/gif" />
             <button type="submit">Post</button>
         </form>
-
-        <a href="/profile">Profile</a>
-        <a href="/logout">Logout</a>
-    <% } else { %>
-        <a href="/login">Login</a>
     <% } %>
-        <a href="/notifications" id="mailbox-link">Mailbox <span id="mailbox-dot" class="hidden" style="color:red;margin-left:4px;">●</span> <span id="mailbox-count" class="hidden" style="color:red;font-weight:bold;margin-left:3px;"></span></a>
 
     <!-- POSTS -->
     <% posts.forEach(function(post) { %>
