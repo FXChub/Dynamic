@@ -1,3 +1,6 @@
+/* Main stylesheet for The FXC Fandom application */
+
+/* Global body styles */
 body {
     font-family: Arial, sans-serif;
     background: #e6ecf0;
@@ -5,6 +8,7 @@ body {
     padding: 0;
 }
 
+/* Fixed navigation header in top-right */
 .nav-header {
     position: fixed;
     top: 15px;
@@ -15,6 +19,7 @@ body {
     z-index: 1000;
 }
 
+/* Navigation link styles */
 .nav-link {
     background: #1da1f2;
     color: white;
@@ -30,19 +35,23 @@ body {
     background: #0d8ddb;
 }
 
+/* Specific style for login button */
 .login-btn {
     background: #1da1f2;
 }
 
+/* Main content container */
 .container {
     width: 600px;
     margin: 20px auto;
 }
 
+/* Heading styles */
 h1 {
     text-align: center;
 }
 
+/* Post card styles */
 .post {
     background: white;
     padding: 15px;
@@ -51,6 +60,7 @@ h1 {
     box-shadow: 0 2px 5px rgba(0,0,0,0.1);
 }
 
+/* Form input styles */
 textarea, input {
     width: 100%;
     padding: 10px;
@@ -59,6 +69,7 @@ textarea, input {
     border: 1px solid #ccc;
 }
 
+/* Button styles */
 button {
     background: #1da1f2;
     color: white;
@@ -72,20 +83,24 @@ button:hover {
     background: #0d8ddb;
 }
 
+/* Link styles */
 a {
     margin-right: 10px;
     text-decoration: none;
     color: #1da1f2;
 }
 
+/* Form spacing */
 form {
     margin-bottom: 10px;
 }
 
+/* Notification icon positioning */
 #notification-icon {
     position: relative;
 }
 
+/* Red dot for notifications */
 #notification-dot {
     position: absolute;
     top: 0;
@@ -96,6 +111,7 @@ form {
     border-radius: 50%;
 }
 
+/* Hidden class for visibility toggle */
 .hidden {
     display: none;
 }

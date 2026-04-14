@@ -125,36 +125,6 @@ app.get("/logout", (req, res) => {
     res.redirect("/login");
 });
 
-// CREATE POST
-app.post("/post", isLoggedIn, (req, res) => {
-    const content = req.body.content;
-    const userId = req.session.user.id;
-
-    db.run(
-        "INSERT INTO posts (user_id, content) VALUES (?, ?)",
-        [userId, content],
-        function(err) {
-            if (err) return res.status(500).send("Database error");
-
-            db.all(
-                "SELECT follower_id FROM follows WHERE followed_id = ?",
-                [userId],
-                (err, followers) => {
-                    if (!err && followers && followers.length) {
-                        followers.forEach(follower => {
-                            db.run(
-                                "INSERT INTO notifications (user_id, message) VALUES (?, ?)",
-                                [follower.follower_id, `@${req.session.user.username} just posted a new update!`]
-                            );
-                        });
-                    }
-                    res.redirect("/");
-                }
-            );
-        }
-    );
-});
-
 app.post('/follow/:userId', isLoggedIn, (req, res) => {
     const followerId = req.session.user.id;
     const followedId = parseInt(req.params.userId, 10);
@@ -483,18 +453,32 @@ app.post('/posts', isLoggedIn, upload.single('media'), (req, res) => {
     const content = req.body.content;
 
     let mediaPath = null;
-
     if (req.file) {
-    mediaPath = '/uploads/' + req.file.filename;
+        mediaPath = '/uploads/' + req.file.filename;
     }
 
     db.run(
-    `INSERT INTO posts (user_id, content, media_path) VALUES (?, ?, ?)`,
-    [userId, content, mediaPath],
-    function (err) {
-        if (err) return res.status(500).send(err);
-      res.redirect('/'); // or send JSON
-    }
+        `INSERT INTO posts (user_id, content, media_path) VALUES (?, ?, ?)`,
+        [userId, content, mediaPath],
+        function (err) {
+            if (err) return res.status(500).send(err);
+
+            db.all(
+                "SELECT follower_id FROM follows WHERE followed_id = ?",
+                [userId],
+                (err, followers) => {
+                    if (!err && followers && followers.length) {
+                        followers.forEach(follower => {
+                            db.run(
+                                "INSERT INTO notifications (user_id, message) VALUES (?, ?)",
+                                [follower.follower_id, `@${req.session.user.username} just posted a new update!`]
+                            );
+                        });
+                    }
+                    res.redirect('/');
+                }
+            );
+        }
     );
 });
 

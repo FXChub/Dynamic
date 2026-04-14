@@ -19,9 +19,20 @@ const db = new sqlite3.Database("./database.db", (err) => {
         `);
 
         // Add new profile fields to existing database if missing
-        db.run(`ALTER TABLE users ADD COLUMN profile_name TEXT`, () => {});
-        db.run(`ALTER TABLE users ADD COLUMN profile_picture TEXT`, () => {});
-        db.run(`ALTER TABLE users ADD COLUMN profile_bio TEXT`, () => {});
+        db.all(`PRAGMA table_info(users)`, [], (err, columns) => {
+            if (!err && columns) {
+                const names = columns.map(c => c.name);
+                if (!names.includes('profile_name')) {
+                    db.run(`ALTER TABLE users ADD COLUMN profile_name TEXT`);
+                }
+                if (!names.includes('profile_picture')) {
+                    db.run(`ALTER TABLE users ADD COLUMN profile_picture TEXT`);
+                }
+                if (!names.includes('profile_bio')) {
+                    db.run(`ALTER TABLE users ADD COLUMN profile_bio TEXT`);
+                }
+            }
+        });
 
         db.run(`
             CREATE TABLE IF NOT EXISTS follows (

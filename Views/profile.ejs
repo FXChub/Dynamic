@@ -1,11 +1,16 @@
+<!-- User profile page template with tabs for posts, likes, comments, followers, and following -->
 <link rel="stylesheet" href="/style.css">
 
 <div class="container">
+    <!-- Page heading -->
     <h1>Your Profile</h1>
 
+    <!-- Link back to home -->
     <a href="/">Home</a>
 
+    <!-- Profile card displaying user info and edit form -->
     <div class="profile-card" style="margin-top: 20px; padding: 16px; border: 1px solid #ccc; border-radius: 10px; display: flex; gap: 20px; flex-wrap: wrap; align-items: center;">
+        <!-- Profile picture display -->
         <div style="width: 120px; height: 120px; border-radius: 12px; overflow: hidden; background: #f0f0f0; display: flex; align-items: center; justify-content: center;">
             <% if (profilePicture) { %>
                 <img src="<%= profilePicture %>" alt="Profile picture" style="width: 100%; height: 100%; object-fit: cover;" />
@@ -14,6 +19,7 @@
             <% } %>
         </div>
 
+        <!-- Profile info and edit form -->
         <div style="flex: 1; min-width: 220px;">
             <h2 style="margin: 0 0 8px 0;"><%= profileName %></h2>
             <p style="margin: 0 0 8px 0; color: #555;">@<%= user.username %></p>
@@ -21,6 +27,7 @@
                 <p style="margin: 0 0 12px 0; color: #444; max-width: 560px;"><%= profileBio %></p>
             <% } %>
 
+            <!-- Form to update profile details -->
             <form action="/profile" method="POST" enctype="multipart/form-data" style="display: grid; gap: 12px;">
                 <label>
                     Display name
@@ -39,6 +46,7 @@
         </div>
     </div>
 
+    <!-- Navigation tabs for different profile sections -->
     <div class="profile-tabs" style="margin-top: 24px; display: flex; gap: 12px; flex-wrap: wrap;">
         <a href="/profile?tab=own" style="padding: 10px 18px; border-radius: 8px; text-decoration: none; border: 1px solid #ccc;<%= tab === 'own' ? ' background-color: #e9f5ff;' : '' %>">My Posts</a>
         <a href="/profile?tab=liked" style="padding: 10px 18px; border-radius: 8px; text-decoration: none; border: 1px solid #ccc;<%= tab === 'liked' ? ' background-color: #e9f5ff;' : '' %>">Liked Posts</a>
@@ -47,6 +55,7 @@
         <a href="/profile?tab=following" style="padding: 10px 18px; border-radius: 8px; text-decoration: none; border: 1px solid #ccc;<%= tab === 'following' ? ' background-color: #e9f5ff;' : '' %>">Following</a>
     </div>
 
+    <!-- Dynamic heading based on active tab -->
     <h2 style="margin-top: 20px; color: #333;">
         <% if (tab === 'own') { %>Your posts<% } %>
         <% if (tab === 'liked') { %>Posts you've liked<% } %>
@@ -55,15 +64,19 @@
         <% if (tab === 'following') { %>People you follow<% } %>
     </h2>
 
+    <!-- Empty state message -->
     <% if (posts.length === 0) { %>
         <p style="margin-top: 20px; color: #555;">
             <% if (tab === 'followers') { %>No followers found.<% } else if (tab === 'following') { %>You are not following anyone yet.<% } else { %>No posts found for this section.<% } %>
         </p>
     <% } %>
 
+    <!-- Conditional rendering for followers/following tabs vs posts tabs -->
     <% if (tab === 'followers' || tab === 'following') { %>
+        <!-- Display user profiles for followers/following -->
         <% posts.forEach(profile => { %>
             <div class="post" style="margin-top: 18px; padding: 16px; border: 1px solid #ddd; border-radius: 10px; display: flex; gap: 14px; align-items: flex-start;">
+                <!-- Profile picture -->
                 <div style="width: 80px; height: 80px; border-radius: 12px; overflow: hidden; background: #f0f0f0; display:flex; align-items:center; justify-content:center;">
                     <% if (profile.profile_picture) { %>
                         <img src="<%= profile.profile_picture %>" alt="<%= profile.profile_name %>" style="width: 100%; height: 100%; object-fit: cover;" />
@@ -71,6 +84,7 @@
                         <span style="color:#666; text-align:center;">No image</span>
                     <% } %>
                 </div>
+                <!-- Profile info and follow button -->
                 <div style="flex:1;">
                     <p style="margin: 0 0 4px 0; font-weight: bold;"><%= profile.profile_name || profile.username %> <span style="color:#666;">@<%= profile.username %></span></p>
                     <% if (profile.profile_bio) { %>
@@ -86,11 +100,15 @@
             </div>
         <% }) %>
     <% } else { %>
+        <!-- Display posts for other tabs -->
         <% posts.forEach(post => { %>
             <div class="post" style="margin-top: 18px; padding: 16px; border: 1px solid #ddd; border-radius: 10px;">
+            <!-- Post header with author and like count -->
             <p style="margin: 0 0 8px 0; color: #444;"><strong>@<%= post.username %></strong> <span style="color: #666;">(Likes: <%= post.like_count %>)</span></p>
+            <!-- Post content -->
             <p style="margin: 0 0 12px 0;"><%= post.content %></p>
 
+            <!-- Media display if present -->
             <% if (post.media_path) { %>
                 <div style="margin-bottom: 12px;">
                     <% if (post.media_path.endsWith('.mp4') || post.media_path.endsWith('.webm')) { %>
@@ -103,6 +121,7 @@
                 </div>
             <% } %>
 
+            <!-- User's comments on the post (for commented tab) -->
             <% if (tab === 'commented' && post.comment_text) { %>
                 <div style="margin-top: 12px; padding: 12px; border-radius: 10px; background: #f7fbff; border: 1px solid #cce4ff;">
                     <strong>Your comment<%= post.comment_text.includes('|||') ? 's' : '' %>:</strong>
@@ -112,6 +131,7 @@
                 </div>
             <% } %>
 
+            <!-- Edit and delete buttons for own posts -->
             <% if (tab === 'own') { %>
                 <form action="/edit/<%= post.id %>" method="POST" style="display: flex; gap: 8px; flex-wrap: wrap;">
                     <input name="content" value="<%= post.content %>" style="flex: 1 0 200px; padding: 8px;" />
