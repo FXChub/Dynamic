@@ -54,6 +54,13 @@
                 <span class="like-feedback" style="margin-left: 10px; color: green; display: none;"><%= liked ? 'Unliked!' : 'Liked!' %></span>
             </form>
 
+            <% if (user && post.user_id !== user.id) { %>
+                <% const followingAuthor = !!(userFollowing && userFollowing.length && userFollowing.indexOf(post.user_id) !== -1); %>
+                <form action="<%= followingAuthor ? '/unfollow/' + post.user_id : '/follow/' + post.user_id %>" method="POST" style="display: inline; margin-left: 10px;">
+                    <button type="submit" style="padding: 8px 14px;"><%= followingAuthor ? 'Unfollow' : 'Follow' %></button>
+                </form>
+            <% } %>
+
             <!-- 💬 COMMENTS -->
             <div class="comments">
                 <% if (comments) { %>

@@ -35,15 +35,16 @@ app.get("/", (req, res) => {
 
         const userId = req.session.user ? req.session.user.id : null;
         let userLikes = [];
+        let userFollowing = [];
 
-        const renderPage = (userLikesArray) => {
+        const renderPage = (userLikesArray, userFollowingArray) => {
             db.all(`
                 SELECT comments.*, users.username 
                 FROM comments 
                 JOIN users ON comments.user_id = users.id
             `, [], (err, comments) => {
                 if (err) return res.status(500).send("Database error");
-                res.render("index", { posts, comments, user: req.session.user, userLikes: userLikesArray });
+                res.render("index", { posts, comments, user: req.session.user, userLikes: userLikesArray, userFollowing: userFollowingArray });
             });
         };
 
@@ -54,11 +55,19 @@ app.get("/", (req, res) => {
                 (err, likeRows) => {
                     if (err) return res.status(500).send("Database error");
                     userLikes = likeRows.map(r => r.post_id);
-                    renderPage(userLikes);
+                    db.all(
+                        "SELECT followed_id FROM follows WHERE follower_id = ?",
+                        [userId],
+                        (err, followRows) => {
+                            if (err) return res.status(500).send("Database error");
+                            userFollowing = followRows.map(r => r.followed_id);
+                            renderPage(userLikes, userFollowing);
+                        }
+                    );
                 }
             );
         } else {
-            renderPage(userLikes);
+            renderPage(userLikes, userFollowing);
         }
     });
 });
@@ -76,8 +85,8 @@ app.post("/register", (req, res) => {
         if (err) return res.send("Error hashing password");
 
         db.run(
-            "INSERT INTO users (username, password) VALUES (?, ?)",
-            [username, hash],
+            "INSERT INTO users (username, password, profile_name, profile_bio) VALUES (?, ?, ?, ?)",
+            [username, hash, username, ""],
             function(err) {
                 if (err) return res.send("User already exists");
                 res.redirect("/login");
@@ -124,19 +133,118 @@ app.post("/post", isLoggedIn, (req, res) => {
     db.run(
         "INSERT INTO posts (user_id, content) VALUES (?, ?)",
         [userId, content],
-        () => res.redirect("/")
+        function(err) {
+            if (err) return res.status(500).send("Database error");
+
+            db.all(
+                "SELECT follower_id FROM follows WHERE followed_id = ?",
+                [userId],
+                (err, followers) => {
+                    if (!err && followers && followers.length) {
+                        followers.forEach(follower => {
+                            db.run(
+                                "INSERT INTO notifications (user_id, message) VALUES (?, ?)",
+                                [follower.follower_id, `@${req.session.user.username} just posted a new update!`]
+                            );
+                        });
+                    }
+                    res.redirect("/");
+                }
+            );
+        }
     );
 });
 
-// PROFILE (Read own posts)
-app.get("/profile", isLoggedIn, (req, res) => {
-    db.all(
-        "SELECT * FROM posts WHERE user_id = ?",
-        [req.session.user.id], 
-        (err, rows) => {
-            res.render("profile", { posts: rows });
+app.post('/follow/:userId', isLoggedIn, (req, res) => {
+    const followerId = req.session.user.id;
+    const followedId = parseInt(req.params.userId, 10);
+
+    if (followerId === followedId) return res.redirect('back');
+
+    db.run(
+        "INSERT OR IGNORE INTO follows (follower_id, followed_id) VALUES (?, ?)",
+        [followerId, followedId],
+        (err) => {
+            if (err) return res.status(500).send("Database error");
+            res.redirect('back');
         }
     );
+});
+
+app.post('/unfollow/:userId', isLoggedIn, (req, res) => {
+    const followerId = req.session.user.id;
+    const followedId = parseInt(req.params.userId, 10);
+
+    if (followerId === followedId) return res.redirect('back');
+
+    db.run(
+        "DELETE FROM follows WHERE follower_id = ? AND followed_id = ?",
+        [followerId, followedId],
+        (err) => {
+            if (err) return res.status(500).send("Database error");
+            res.redirect('back');
+        }
+    );
+});
+
+// PROFILE (Read own posts, liked posts, commented posts, followers, following)
+app.get("/profile", isLoggedIn, (req, res) => {
+    const userId = req.session.user.id;
+    const tab = req.query.tab || "own";
+    const validTabs = ["own", "liked", "commented", "followers", "following"];
+    const activeTab = validTabs.includes(tab) ? tab : "own";
+
+    const queries = {
+        own: `SELECT posts.*, users.username,
+                 (SELECT COUNT(*) FROM likes WHERE post_id = posts.id) AS like_count
+               FROM posts
+               JOIN users ON posts.user_id = users.id
+               WHERE posts.user_id = ?
+               ORDER BY posts.created_at DESC`,
+        liked: `SELECT posts.*, users.username,
+                   (SELECT COUNT(*) FROM likes WHERE post_id = posts.id) AS like_count
+                 FROM posts
+                 JOIN users ON posts.user_id = users.id
+                 WHERE posts.id IN (SELECT post_id FROM likes WHERE user_id = ?)
+                 ORDER BY posts.created_at DESC`,
+        commented: `SELECT posts.*, users.username,
+                         (SELECT COUNT(*) FROM likes WHERE post_id = posts.id) AS like_count,
+                         GROUP_CONCAT(comments.content, '|||') AS comment_text
+                       FROM posts
+                       JOIN users ON posts.user_id = users.id
+                       JOIN comments ON comments.post_id = posts.id AND comments.user_id = ?
+                       GROUP BY posts.id
+                       ORDER BY posts.created_at DESC`,
+        followers: `SELECT users.id, users.username, users.profile_name, users.profile_picture, users.profile_bio
+                    FROM users
+                    JOIN follows ON follows.follower_id = users.id
+                    WHERE follows.followed_id = ?
+                    ORDER BY users.username ASC`,
+        following: `SELECT users.id, users.username, users.profile_name, users.profile_picture, users.profile_bio
+                    FROM users
+                    JOIN follows ON follows.followed_id = users.id
+                    WHERE follows.follower_id = ?
+                    ORDER BY users.username ASC`
+    };
+
+    db.all("SELECT followed_id FROM follows WHERE follower_id = ?", [userId], (err, followRows) => {
+        if (err) return res.status(500).send("Database error");
+        const userFollowing = followRows.map(r => r.followed_id);
+
+        db.all(queries[activeTab], [userId], (err, rows) => {
+            if (err) return res.status(500).send("Database error");
+
+            res.render("profile", {
+                posts: rows,
+                tab: activeTab,
+                profileName: req.session.user.profile_name || req.session.user.username,
+                profilePicture: req.session.user.profile_picture || null,
+                profileBio: req.session.user.profile_bio || "",
+                user: req.session.user,
+                userFollowing
+            });
+        });
+    });
 });
 
 // UPDATE POST
@@ -315,6 +423,7 @@ app.post('/notifications/mark-read', isLoggedIn, (req, res) => {
 
 const multer = require('multer');
 const path = require('path');
+const fs = require('fs');
 
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
@@ -338,6 +447,36 @@ const fileFilter = (req, file, cb) => {
 };
 
 const upload = multer({ storage, fileFilter });
+
+app.post('/profile', isLoggedIn, upload.single('profile_picture'), (req, res) => {
+    const userId = req.session.user.id;
+    const profileName = req.body.profile_name ? req.body.profile_name.trim() : req.session.user.username;
+    const profileBio = req.body.profile_bio ? req.body.profile_bio.trim() : "";
+    let profilePicture = req.session.user.profile_picture || null;
+
+    if (req.file) {
+        const newPicturePath = '/uploads/' + req.file.filename;
+        if (profilePicture && profilePicture.startsWith('/uploads/')) {
+            const oldFile = path.join(__dirname, profilePicture);
+            fs.unlink(oldFile, () => {});
+        }
+        profilePicture = newPicturePath;
+    }
+
+    db.run(
+        "UPDATE users SET profile_name = ?, profile_picture = ?, profile_bio = ? WHERE id = ?",
+        [profileName, profilePicture, profileBio, userId],
+        (err) => {
+            if (err) return res.status(500).send("Database error");
+
+            db.get("SELECT * FROM users WHERE id = ?", [userId], (err, updatedUser) => {
+                if (err) return res.status(500).send("Database error");
+                req.session.user = updatedUser;
+                res.redirect('/profile?tab=own');
+            });
+        }
+    );
+});
 
 app.post('/posts', isLoggedIn, upload.single('media'), (req, res) => {
     const userId = req.session.user.id;

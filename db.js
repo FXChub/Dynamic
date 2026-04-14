@@ -11,7 +11,24 @@ const db = new sqlite3.Database("./database.db", (err) => {
             CREATE TABLE IF NOT EXISTS users (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 username TEXT UNIQUE,
-                password TEXT
+                password TEXT,
+                profile_name TEXT,
+                profile_picture TEXT,
+                profile_bio TEXT
+            )
+        `);
+
+        // Add new profile fields to existing database if missing
+        db.run(`ALTER TABLE users ADD COLUMN profile_name TEXT`, () => {});
+        db.run(`ALTER TABLE users ADD COLUMN profile_picture TEXT`, () => {});
+        db.run(`ALTER TABLE users ADD COLUMN profile_bio TEXT`, () => {});
+
+        db.run(`
+            CREATE TABLE IF NOT EXISTS follows (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                follower_id INTEGER,
+                followed_id INTEGER,
+                UNIQUE(follower_id, followed_id)
             )
         `);
 

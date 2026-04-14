@@ -5,16 +5,124 @@
 
     <a href="/">Home</a>
 
-    <% posts.forEach(post => { %>
-        <div class="post">
-            <form action="/edit/<%= post.id %>" method="POST">
-                <input name="content" value="<%= post.content %>">
-                <button>Update</button>
-            </form>
+    <div class="profile-card" style="margin-top: 20px; padding: 16px; border: 1px solid #ccc; border-radius: 10px; display: flex; gap: 20px; flex-wrap: wrap; align-items: center;">
+        <div style="width: 120px; height: 120px; border-radius: 12px; overflow: hidden; background: #f0f0f0; display: flex; align-items: center; justify-content: center;">
+            <% if (profilePicture) { %>
+                <img src="<%= profilePicture %>" alt="Profile picture" style="width: 100%; height: 100%; object-fit: cover;" />
+            <% } else { %>
+                <span style="font-size: 0.9rem; color: #666; text-align: center;">No profile picture</span>
+            <% } %>
+        </div>
 
-            <form action="/delete/<%= post.id %>" method="POST">
-                <button>Delete</button>
+        <div style="flex: 1; min-width: 220px;">
+            <h2 style="margin: 0 0 8px 0;"><%= profileName %></h2>
+            <p style="margin: 0 0 8px 0; color: #555;">@<%= user.username %></p>
+            <% if (profileBio) { %>
+                <p style="margin: 0 0 12px 0; color: #444; max-width: 560px;"><%= profileBio %></p>
+            <% } %>
+
+            <form action="/profile" method="POST" enctype="multipart/form-data" style="display: grid; gap: 12px;">
+                <label>
+                    Display name
+                    <input name="profile_name" value="<%= profileName %>" placeholder="Your display name" style="width: 100%; padding: 8px; margin-top: 4px;" />
+                </label>
+                <label>
+                    Bio
+                    <textarea name="profile_bio" placeholder="Tell people about yourself" style="width: 100%; padding: 8px; margin-top: 4px; min-height: 90px;"><%= profileBio %></textarea>
+                </label>
+                <label>
+                    Profile picture
+                    <input type="file" name="profile_picture" accept="image/*" style="width: 100%; margin-top: 4px;" />
+                </label>
+                <button type="submit" style="width: fit-content; padding: 10px 18px;">Save profile</button>
             </form>
         </div>
+    </div>
+
+    <div class="profile-tabs" style="margin-top: 24px; display: flex; gap: 12px; flex-wrap: wrap;">
+        <a href="/profile?tab=own" style="padding: 10px 18px; border-radius: 8px; text-decoration: none; border: 1px solid #ccc;<%= tab === 'own' ? ' background-color: #e9f5ff;' : '' %>">My Posts</a>
+        <a href="/profile?tab=liked" style="padding: 10px 18px; border-radius: 8px; text-decoration: none; border: 1px solid #ccc;<%= tab === 'liked' ? ' background-color: #e9f5ff;' : '' %>">Liked Posts</a>
+        <a href="/profile?tab=commented" style="padding: 10px 18px; border-radius: 8px; text-decoration: none; border: 1px solid #ccc;<%= tab === 'commented' ? ' background-color: #e9f5ff;' : '' %>">Commented Posts</a>
+        <a href="/profile?tab=followers" style="padding: 10px 18px; border-radius: 8px; text-decoration: none; border: 1px solid #ccc;<%= tab === 'followers' ? ' background-color: #e9f5ff;' : '' %>">Followers</a>
+        <a href="/profile?tab=following" style="padding: 10px 18px; border-radius: 8px; text-decoration: none; border: 1px solid #ccc;<%= tab === 'following' ? ' background-color: #e9f5ff;' : '' %>">Following</a>
+    </div>
+
+    <h2 style="margin-top: 20px; color: #333;">
+        <% if (tab === 'own') { %>Your posts<% } %>
+        <% if (tab === 'liked') { %>Posts you've liked<% } %>
+        <% if (tab === 'commented') { %>Posts you've commented on<% } %>
+        <% if (tab === 'followers') { %>People who follow you<% } %>
+        <% if (tab === 'following') { %>People you follow<% } %>
+    </h2>
+
+    <% if (posts.length === 0) { %>
+        <p style="margin-top: 20px; color: #555;">
+            <% if (tab === 'followers') { %>No followers found.<% } else if (tab === 'following') { %>You are not following anyone yet.<% } else { %>No posts found for this section.<% } %>
+        </p>
+    <% } %>
+
+    <% if (tab === 'followers' || tab === 'following') { %>
+        <% posts.forEach(profile => { %>
+            <div class="post" style="margin-top: 18px; padding: 16px; border: 1px solid #ddd; border-radius: 10px; display: flex; gap: 14px; align-items: flex-start;">
+                <div style="width: 80px; height: 80px; border-radius: 12px; overflow: hidden; background: #f0f0f0; display:flex; align-items:center; justify-content:center;">
+                    <% if (profile.profile_picture) { %>
+                        <img src="<%= profile.profile_picture %>" alt="<%= profile.profile_name %>" style="width: 100%; height: 100%; object-fit: cover;" />
+                    <% } else { %>
+                        <span style="color:#666; text-align:center;">No image</span>
+                    <% } %>
+                </div>
+                <div style="flex:1;">
+                    <p style="margin: 0 0 4px 0; font-weight: bold;"><%= profile.profile_name || profile.username %> <span style="color:#666;">@<%= profile.username %></span></p>
+                    <% if (profile.profile_bio) { %>
+                        <p style="margin: 0 0 8px 0; color:#444;"><%= profile.profile_bio %></p>
+                    <% } %>
+                    <% if (profile.id !== user.id) { %>
+                        <% const followingProfile = !!(userFollowing && userFollowing.indexOf(profile.id) !== -1); %>
+                        <form action="<%= followingProfile ? '/unfollow/' + profile.id : '/follow/' + profile.id %>" method="POST" style="display: inline-block;">
+                            <button style="padding: 10px 16px;"><%= followingProfile ? 'Unfollow' : 'Follow' %></button>
+                        </form>
+                    <% } %>
+                </div>
+            </div>
+        <% }) %>
+    <% } else { %>
+        <% posts.forEach(post => { %>
+            <div class="post" style="margin-top: 18px; padding: 16px; border: 1px solid #ddd; border-radius: 10px;">
+            <p style="margin: 0 0 8px 0; color: #444;"><strong>@<%= post.username %></strong> <span style="color: #666;">(Likes: <%= post.like_count %>)</span></p>
+            <p style="margin: 0 0 12px 0;"><%= post.content %></p>
+
+            <% if (post.media_path) { %>
+                <div style="margin-bottom: 12px;">
+                    <% if (post.media_path.endsWith('.mp4') || post.media_path.endsWith('.webm')) { %>
+                        <video controls width="100%" style="max-width: 560px; border-radius: 10px;">
+                            <source src="<%= post.media_path %>" type="video/mp4">
+                        </video>
+                    <% } else { %>
+                        <img src="<%= post.media_path %>" alt="Post media" style="width: 100%; max-width: 560px; border-radius: 10px;" />
+                    <% } %>
+                </div>
+            <% } %>
+
+            <% if (tab === 'commented' && post.comment_text) { %>
+                <div style="margin-top: 12px; padding: 12px; border-radius: 10px; background: #f7fbff; border: 1px solid #cce4ff;">
+                    <strong>Your comment<%= post.comment_text.includes('|||') ? 's' : '' %>:</strong>
+                    <% post.comment_text.split('|||').forEach(comment => { %>
+                        <p style="margin: 8px 0 0 0; color: #333;">"<%= comment %>"</p>
+                    <% }) %>
+                </div>
+            <% } %>
+
+            <% if (tab === 'own') { %>
+                <form action="/edit/<%= post.id %>" method="POST" style="display: flex; gap: 8px; flex-wrap: wrap;">
+                    <input name="content" value="<%= post.content %>" style="flex: 1 0 200px; padding: 8px;" />
+                    <button style="padding: 10px 18px;">Update</button>
+                </form>
+
+                <form action="/delete/<%= post.id %>" method="POST" style="margin-top: 10px;">
+                    <button style="padding: 10px 18px;">Delete</button>
+                </form>
+            <% } %>
+        </div>
     <% }) %>
+    <% } %>
 </div>
