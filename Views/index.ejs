@@ -160,7 +160,7 @@
           if (postBlock) {
             const commentsList = postBlock.querySelector('.comments');
             const newComment = document.createElement('p');
-            const currentUser = '<%= user.username %>';
+            const currentUser = '<%= user ? user.username : "Anonymous" %>';
             newComment.innerHTML = `<strong>@${currentUser}:</strong> ${content}`;
             commentsList.appendChild(newComment);
           }

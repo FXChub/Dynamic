@@ -1,5 +1,11 @@
 <!-- User profile page template with tabs for posts, likes, comments, followers, and following -->
-<link rel="stylesheet" href="/style.css">
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Profile - The FXC Fandom</title>
+    <link rel="stylesheet" href="/style.css">
+</head>
+<body>
 
 <div class="container">
     <!-- Page heading -->
@@ -91,7 +97,7 @@
                         <p style="margin: 0 0 8px 0; color:#444;"><%= profile.profile_bio %></p>
                     <% } %>
                     <% if (profile.id !== user.id) { %>
-                        <% const followingProfile = !!(userFollowing && userFollowing.indexOf(profile.id) !== -1); %>
+                        <% const followingProfile = !!(userFollowing && userFollowing.length && userFollowing.indexOf(profile.id) !== -1); %>
                         <form action="<%= followingProfile ? '/unfollow/' + profile.id : '/follow/' + profile.id %>" method="POST" style="display: inline-block;">
                             <button style="padding: 10px 16px;"><%= followingProfile ? 'Unfollow' : 'Follow' %></button>
                         </form>
@@ -146,3 +152,6 @@
     <% }) %>
     <% } %>
 </div>
+
+</body>
+</html>
